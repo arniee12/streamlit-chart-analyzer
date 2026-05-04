@@ -6,7 +6,7 @@ import base64
 from dotenv import load_dotenv
 import yfinance as yf
 from datetime import datetime
-import openai
+from openai import OpenAI, AuthenticationError, RateLimitError
 
 load_dotenv()
 
@@ -88,7 +88,7 @@ def draw_overlays(image, analysis, price_min, price_max):
 
 def analyze_chart(image, api_key, ticker, rt_data, model):
     try:
-        openai.api_key = api_key
+        client = OpenAI(api_key=api_key)
         img_base64 = encode_image_to_base64(image)
         
         prompt = f"""Analyze this trading chart for {ticker} and provide a detailed technical analysis in JSON format.
@@ -123,7 +123,7 @@ Analyze the chart carefully for:
 - Key price levels
 """
         
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {
@@ -162,14 +162,14 @@ Analyze the chart carefully for:
         
         return analysis
         
-    except openai.error.AuthenticationError:
-        st.error("Invalid OpenAI API Key")
+    except AuthenticationError:
+        st.error("❌ Invalid OpenAI API Key - please check your key in Settings")
         return None
-    except openai.error.RateLimitError:
-        st.error("Rate limit reached. Please wait a moment and try again.")
+    except RateLimitError:
+        st.error("⏱️ Rate limit reached. Please wait a moment and try again.")
         return None
     except Exception as e:
-        st.error(f"Analysis failed: {str(e)}")
+        st.error(f"❌ Analysis failed: {str(e)}")
         return None
 
 if uploaded_file:
